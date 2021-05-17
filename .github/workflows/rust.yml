@@ -1,0 +1,147 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: # This configuration does not affect the page_build event above
+    - created
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install stable toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+
+    - name: Cache Rust Dependencies
+      uses: Swatinem/rust-cache@v1
+    - name: Run cargo build
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --verbose --release
+    - name: Strip Binary
+      run: |
+        strip target/release/xycrd
+    - name: Run cargo test
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --verbose
+
+    - name: Clippy warnings
+      uses: actions-rs/clippy-check@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        args: --all-features
+    - name: Security audit
+      uses: actions-rs/audit-check@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Run cargo fmt
+      uses: actions-rs/cargo@v1
+      with:
+        command: fmt
+        args: --all -- --check
+        
+    - name: NFPM .deb
+      uses: blinktag/nfpm@v2.3.1
+      with:
+        packager: deb
+    - name: Prepare location of binary
+      run: mv target/release/xycrd .
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v2.2.3
+      with:
+        name: binaries
+        path: |
+          xycrd*deb
+          xycrd
+
+  integration-test-deb:
+    strategy:
+      matrix:
+        node_image:
+          - kindest/node:v1.20.2@sha256:8f7ea6e7642c0da54f04a7ee10431549c0257315b3a634f6ef2fecaaedb19bab
+          - kindest/node:v1.19.7@sha256:a70639454e97a4b733f9d9b67e12c01f6b0297449d5b9cbbef87473458e26dca
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Fetch Package
+      uses: actions/download-artifact@v2.0.9
+      with:
+        name: binaries
+    - name: Start Apache2
+      run: |
+        sudo a2enmod rewrite
+        sudo systemctl restart apache2
+    - name: Kubernetes KinD Cluster
+      uses: container-tools/kind-action@v1
+      with:
+        wait: 120s
+    - name: Install Xymon
+      run: |
+        sudo apt update
+        sudo apt install -y xymon
+    - name: Install and Configure Package
+      run: |
+        sudo dpkg --install xycrd*deb
+        echo "setting up Kubernetes access"
+        sudo cp -r $HOME/.kube/ ~xymon/
+        sudo chown -R xymon ~xymon/.kube/
+        sudo -u xymon kubectl cluster-info
+        echo "ls -ld /var/lib/xycrd/"
+        ls -ld /var/lib/xycrd/
+        echo "optional directory /var/lib/xycrd/" | sudo tee -a /etc/xymon/hosts.cfg
+        echo "activating xycrd"
+        sudo sed -i -e 's/DISABLED/#DISABLED/' /etc/xymon/tasks.d/xycrd.cfg
+        sudo systemctl reload xymon
+        
+    - name: Insert CRD
+      run: |
+        xycrd --print-install-files | kubectl apply -f -
+        sudo -u xymon kubectl get crd
+
+    - uses: actions/checkout@v2
+    - name: Insert example.yaml
+      run: |
+        kubectl apply -f example.yaml
+    - name: Wait for presence in Xymon config
+      timeout-minutes: 1
+      run: |
+        tail -f /var/log/xymon/*.log &
+        while true ; do xymoncmd xymon 127.0.0.1 'config hosts.cfg' | grep icanhazip.com && break ; echo "sleep 3" ; sleep 3 ; done
+
+  release:
+    needs:
+      - integration-test-deb
+      - build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+    - name: Fetch Package
+      uses: actions/download-artifact@v2.0.9
+      with:
+        name: binaries
+    - name: GH Release
+      uses: softprops/action-gh-release@v0.1.5
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        files: |
+          xycrd*deb
+          xycrd

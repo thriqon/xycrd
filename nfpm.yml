@@ -1,0 +1,23 @@
+name: "xycrd"
+arch: "amd64"
+platform: "linux"
+version: "v0.1.0"
+section: "default"
+priority: "extra"
+depends:
+- xymon
+maintainer: "Jonas Weber <weber@jonasw.de>"
+homepage: "https://github.com/thriqon/xycrd/"
+license: "MIT"
+#changelog: "changelog.yaml"
+contents:
+- src: ./target/release/xycrd/
+  dst: /usr/bin/xycrd
+- src: deploy/config/task.cfg
+  dst: /etc/xymon/tasks.d/xycrd.cfg
+- src: deploy/man1/xycrd.1
+  dst: /usr/share/man1/xycrd.1
+empty_folders:
+  - /var/lib/xycrd/
+scripts:
+  postinstall: ./deploy/postinst.sh

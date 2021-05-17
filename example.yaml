@@ -1,0 +1,6 @@
+kind: EndpointMonitor
+apiVersion: xycrd.thriqon.github.io/v1alpha1
+metadata:
+  name: icanhazip
+spec:
+  url: https://icanhazip.com/
