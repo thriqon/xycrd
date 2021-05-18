@@ -36,14 +36,18 @@ spec:
           spec:
             type: object
             properties:
+              # This pattern enforces no newlines.
               contentCheck:
                 type: string
                 nullable: true
+                pattern: '^.*$'
               tags:
                 type: string
                 nullable: true
+                pattern: '^.*$'
               url:
                 type: string
+                pattern: '^.*$'
             required:
             - url
 ---
