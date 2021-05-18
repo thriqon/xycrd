@@ -81,50 +81,18 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v2
     - name: Fetch Package
       uses: actions/download-artifact@v2.0.9
       with:
         name: binaries
-    - name: Start Apache2
-      run: |
-        sudo a2enmod rewrite
-        sudo systemctl restart apache2
     - name: Kubernetes KinD Cluster
       uses: container-tools/kind-action@v1
       with:
         wait: 120s
-    - name: Install Xymon
+    - name: Run Tests
       run: |
-        sudo apt update
-        sudo apt install -y xymon
-    - name: Install and Configure Package
-      run: |
-        sudo dpkg --install xycrd*deb
-        echo "setting up Kubernetes access"
-        sudo cp -r $HOME/.kube/ ~xymon/
-        sudo chown -R xymon ~xymon/.kube/
-        sudo -u xymon kubectl cluster-info
-        echo "ls -ld /var/lib/xycrd/"
-        ls -ld /var/lib/xycrd/
-        echo "optional directory /var/lib/xycrd/" | sudo tee -a /etc/xymon/hosts.cfg
-        echo "activating xycrd"
-        sudo sed -i -e 's/DISABLED/#DISABLED/' /etc/xymon/tasks.d/xycrd.cfg
-        sudo systemctl reload xymon
-        
-    - name: Insert CRD
-      run: |
-        xycrd --print-install-files | kubectl apply -f -
-        sudo -u xymon kubectl get crd
-
-    - uses: actions/checkout@v2
-    - name: Insert example.yaml
-      run: |
-        kubectl apply -f example.yaml
-    - name: Wait for presence in Xymon config
-      timeout-minutes: 1
-      run: |
-        tail -f /var/log/xymon/*.log &
-        while true ; do xymoncmd xymon 127.0.0.1 'config hosts.cfg' | grep icanhazip.com && break ; echo "sleep 3" ; sleep 3 ; done
+        ./integration-tests.sh
 
   release:
     needs:
