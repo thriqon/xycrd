@@ -50,6 +50,8 @@ kubectl create serviceaccount test-reader
 kubectl create rolebinding test-reader --clusterrole view --serviceaccount default:test-reader
 # now it should work (read)
 kubectl get endpointmonitors --as system:serviceaccount:default:test-reader
+# also in singular
+kubectl get endpointmonitor --as system:serviceaccount:default:test-reader
 ! kubectl delete -f example.yaml --as system:serviceaccount:default:test-reader && echo "expected failure occurred"
 echo "> cleanup"
 kubectl delete rolebinding test-reader
