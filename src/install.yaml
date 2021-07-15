@@ -10,7 +10,7 @@ spec:
     plural: endpointmonitors
     shortNames:
       - em
-    singular: endpoindmonitor
+    singular: endpointmonitor
     categories:
     - all
   scope: Namespaced
