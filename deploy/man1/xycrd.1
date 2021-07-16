@@ -55,6 +55,13 @@ might be reduced.
 Override the location of the
 .B xymond
 PID file.
+.TP
+--skip-sighup
+Do not send a
+.B SIGHUP
+to
+.B xymond
+when a change has been detected and stored in the snippet file.
 .SH EXAMPLE
 .TP
 This example monitors \fIhttps://icanhazip.com/\fR:
