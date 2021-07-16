@@ -77,8 +77,9 @@ jobs:
     strategy:
       matrix:
         node_image:
-          - kindest/node:v1.20.2@sha256:8f7ea6e7642c0da54f04a7ee10431549c0257315b3a634f6ef2fecaaedb19bab
-          - kindest/node:v1.19.7@sha256:a70639454e97a4b733f9d9b67e12c01f6b0297449d5b9cbbef87473458e26dca
+          - kindest/node:v1.21.2
+          - kindest/node:v1.20.2
+          - kindest/node:v1.19.7
     needs: build
     runs-on: ubuntu-latest
     steps:
