@@ -41,6 +41,17 @@ for i in $(seq 1 30); do
 done
 echo "::endgroup::"
 
+echo "::group::Activate Example EndpointMonitor with contentCheck"
+kubectl apply -f example-contentcheck.yaml
+
+tail -f /var/log/xymon/*.log &
+for i in $(seq 1 30); do
+        xymoncmd xymon 127.0.0.1 'config hosts.cfg' | grep -- "cont;https://news.ycombinator.com/;Hacker[[:space:]]News" && break
+	echo "sleep 3 (attempt $i)"
+	sleep 3
+done
+echo "::endgroup::"
+
 echo "::group::Readability"
 kubectl create serviceaccount test-reader
 # should not be able to read, delete

@@ -23,6 +23,7 @@ use tokio::{
     kind = "EndpointMonitor",
     namespaced
 )]
+#[serde(rename_all = "camelCase")]
 struct EndpointMonitorSpec {
     url: String,
     content_check: Option<String>,
@@ -35,7 +36,11 @@ impl EndpointMonitor {
         let name = self.metadata.name.as_ref().unwrap();
 
         let content_check_tag = if let Some(content_check) = self.spec.content_check.as_ref() {
-            format!("cont;{};{}", self.spec.url, content_check)
+            format!(
+                "cont;{};{}",
+                self.spec.url,
+                content_check.replace(" ", "[[:space:]]")
+            )
         } else {
             self.spec.url.clone()
         };
