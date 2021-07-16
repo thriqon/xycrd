@@ -16,7 +16,7 @@ contents:
 - src: deploy/config/task.cfg
   dst: /etc/xymon/tasks.d/xycrd.cfg
 - src: deploy/man1/xycrd.1
-  dst: /usr/share/man1/xycrd.1
+  dst: /usr/share/man/man1/xycrd.1
 empty_folders:
   - /var/lib/xycrd/
 scripts:

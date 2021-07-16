@@ -133,6 +133,13 @@ struct Cli {
     #[structopt(long, default_value = "/var/run/xymon/xymond.pid", parse(from_os_str))]
     xymond_pid: PathBuf,
 
+    #[structopt(
+        long,
+        conflicts_with("xymond-pid"),
+        help = "Skip SIGHUPping xymond on change"
+    )]
+    skip_sighup: bool,
+
     #[structopt(short = "v", long = "verbose", parse(from_occurrences))]
     verbose: usize,
 
@@ -199,8 +206,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 },
 
                 () = &mut sleeper => {
-                    info!("reload delay elapsed, sending SIGHUP");
+                    info!("reload delay elapsed, storing snippet");
                     persist_xymon_config(args.output_file.as_path(), reader.state()).await?;
+                    if args.skip_sighup {
+                        break;
+                    }
+
+                    info!("sending SIGHUP");
                     match ping_xymon(args.xymond_pid.as_path()).await {
                         Ok(_) => {},
                         Err(e) => {
