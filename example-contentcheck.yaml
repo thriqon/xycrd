@@ -1,0 +1,7 @@
+kind: EndpointMonitor
+apiVersion: xycrd.thriqon.github.io/v1alpha1
+metadata:
+  name: hackernews
+spec:
+  url: https://news.ycombinator.com/
+  contentCheck: Hacker News
